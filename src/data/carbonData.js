@@ -66,8 +66,8 @@ export const CATEGORIES = [
     color: '#f97316',
     description: 'What you eat and how often',
     inputs: [
-      { id: 'beef_meals', label: 'Beef meals per week', factor: 0.83, unit: 'meals', type: 'number', default: 2 },
-      { id: 'chicken_meals', label: 'Chicken/fish meals per week', factor: 0.23, unit: 'meals', type: 'number', default: 4 },
+      { id: 'beef_meals', label: 'Red meat meals per week (mutton/beef)', factor: 0.83, unit: 'meals', type: 'number', default: 2 },
+      { id: 'chicken_meals', label: 'Chicken/fish/egg meals per week', factor: 0.23, unit: 'meals', type: 'number', default: 4 },
       { id: 'veg_meals', label: 'Vegetarian meals per week', factor: 0.07, unit: 'meals', type: 'number', default: 7 },
       { id: 'dairy_daily', label: 'Dairy servings per day', factor: 0.24, unit: 'servings', type: 'number', default: 2 },
     ]
@@ -144,7 +144,7 @@ export const ACTIONS = [
   {
     id: 'reduce_beef',
     category: 'food',
-    label: 'Halve your beef consumption',
+    label: 'Reduce red meat to once a week',
     savingKgPerYear: 430,
     difficulty: 'medium',
     tip: 'Beef production emits 20x more greenhouse gases than plant proteins.',

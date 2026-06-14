@@ -1,0 +1,426 @@
+================================================================================
+  ECOTRACE — PROMPT ENGINEERING SHOWCASE
+  Google PromptWars 2026 | Advaith R
+  B.E. CSE (AI & ML), JSSATEB Bengaluru
+================================================================================
+
+This file documents the key prompts used to design, build, and ship EcoTrace —
+an AI-powered carbon footprint tracker. Each prompt is annotated with the
+technique used, showing deliberate, efficient prompt engineering throughout.
+
+--------------------------------------------------------------------------------
+PROMPT ENGINEERING TECHNIQUES USED
+--------------------------------------------------------------------------------
+
+  [ROLE]       Assign a persona to anchor tone and expertise
+  [CONTEXT]    Give background so the model doesn't make assumptions
+  [FORMAT]     Specify exact output structure (JSON, markdown, code)
+  [CONSTRAINT] Add explicit limits to prevent bloat or off-scope output
+  [CHAIN]      Break a complex task into a sequence of smaller prompts
+  [EXAMPLE]    Show the model what good output looks like
+  [FALLBACK]   Handle failure modes gracefully within the prompt itself
+
+================================================================================
+SECTION 1 — ARCHITECTURE & PLANNING PROMPTS
+================================================================================
+
+PROMPT 1 — Initial project scoping
+─────────────────────────────────────────────────────────────────────────────
+Techniques: [ROLE] [CONTEXT] [FORMAT] [CONSTRAINT]
+
+"You are a senior full-stack engineer and UX designer. I am building a carbon
+footprint tracker web app for Google PromptWars 2026. The challenge vertical is
+individual sustainability.
+
+Design a complete React app architecture that:
+- Tracks emissions across Transport, Food, Energy, and Shopping
+- Shows real-time footprint as users adjust inputs
+- Has AI-powered personalized insights via Claude API
+- Works without a backend (localStorage only, privacy-first)
+- Is mobile-first with bottom navigation
+
+Output as a structured plan with: folder structure, component list, data flow
+diagram (text), and key technical decisions. No code yet."
+
+WHY THIS WORKS:
+  → [ROLE] sets expert persona upfront — output is architectural, not beginner
+  → [CONTEXT] tells the model the competition context and constraints
+  → [FORMAT] asks for a plan before code — prevents premature implementation
+  → [CONSTRAINT] "no code yet" stops the model from jumping ahead
+
+--------------------------------------------------------------------------------
+
+PROMPT 2 — Emission factor research
+─────────────────────────────────────────────────────────────────────────────
+Techniques: [ROLE] [CONTEXT] [FORMAT] [CONSTRAINT]
+
+"You are a climate scientist with expertise in lifecycle carbon accounting.
+
+Give me emission factors for a carbon footprint calculator targeting Indian
+users. Cover: car travel (petrol), flights, bus, train, beef, chicken,
+vegetables, electricity (India grid), LPG, and online shopping delivery.
+
+Format as a JavaScript object with:
+- Keys in snake_case matching these categories
+- Values in kg CO2e per unit
+- Units clearly specified in a comment per line
+- Sources cited (IPCC, EPA, India CEF, or Our World in Data only)
+
+Include: India grid electricity CEF 2023, not global average."
+
+WHY THIS WORKS:
+  → [ROLE] + [CONTEXT] grounds the answer in Indian-specific data
+  → [FORMAT] gives exact output structure — paste-ready into code
+  → [CONSTRAINT] "India CEF 2023, not global average" prevents outdated data
+  → Citing allowed sources prevents hallucinated emission factors
+
+--------------------------------------------------------------------------------
+
+PROMPT 3 — UX flow for onboarding
+─────────────────────────────────────────────────────────────────────────────
+Techniques: [ROLE] [CONTEXT] [FORMAT] [CHAIN]
+
+"You are a mobile UX designer specialising in behaviour change apps.
+
+I need a 3-step onboarding flow for EcoTrace, a carbon footprint tracker.
+The user should finish onboarding in under 60 seconds and feel motivated,
+not overwhelmed.
+
+Design each step with:
+1. Screen title (max 6 words)
+2. Subtitle (max 8 words)
+3. Content type (visual / input / choice)
+4. Primary CTA button label
+5. What data we collect on this step
+
+Constraints:
+- No email or sign-up required
+- Step 3 must set a carbon reduction goal
+- Final CTA should feel like launching a rocket, not filling a form"
+
+WHY THIS WORKS:
+  → [ROLE] specialises in behaviour change — outputs are psychologically aware
+  → Numbered structure ensures consistent, comparable step designs
+  → [CONSTRAINT] "no email" removes privacy friction immediately
+  → "feel like launching a rocket" gives the model aesthetic direction
+
+================================================================================
+SECTION 2 — COMPONENT BUILD PROMPTS
+================================================================================
+
+PROMPT 4 — Dashboard component
+─────────────────────────────────────────────────────────────────────────────
+Techniques: [CONTEXT] [FORMAT] [CONSTRAINT] [EXAMPLE]
+
+"Build a React Dashboard component for EcoTrace.
+
+Context:
+- Stack: React 18, Tailwind CSS, Recharts
+- Theme: dark (slate-950 bg, green-400 accents)
+- Data prop: { total: number, breakdown: { transport, food, energy, shopping },
+              perDay: number, perMonth: number }
+- Profile prop: { name: string, goal: number }
+
+Requirements:
+1. Hero card: show total in tonnes, A+/A/B/C/D/F grade, goal progress bar
+2. Category breakdown: horizontal bars with colour per category
+3. Benchmark comparison: user vs India avg (1.9t), global (4.8t), Paris (2t)
+4. Monthly trend: LineChart from Recharts, 6 months, with Paris target line
+5. All values in kg CO2e/year, display in tonnes when >= 1000kg
+
+Constraints:
+- No inline styles — Tailwind classes only
+- getCarbonRating() and formatEmissions() already exist in utils/calculations.js
+- generateMonthlyTrend() is already implemented — just import it
+- No useState needed — all data comes from props"
+
+WHY THIS WORKS:
+  → [CONTEXT] gives the exact prop shapes — no hallucinated interfaces
+  → Numbered requirements give clear acceptance criteria
+  → [CONSTRAINT] prevents reinventing utilities that already exist
+  → Specifying Recharts + import names prevents wrong library usage
+
+--------------------------------------------------------------------------------
+
+PROMPT 5 — Slider input tracker
+─────────────────────────────────────────────────────────────────────────────
+Techniques: [CONTEXT] [FORMAT] [CONSTRAINT]
+
+"Build a React InputTracker component using the CATEGORIES array from
+src/data/carbonData.js.
+
+Each category renders as a collapsible card (open by default). Inside each
+card, render a slider for every input in category.inputs[].
+
+Slider behaviour:
+- Range: 0 to max (auto-detect by field: km fields max 200, kwh max 1000,
+  flight_km max 20000, all others max 20)
+- Label shows field label left, current value + unit right
+- Slider track fills with category colour up to current value
+- onChange calls: onUpdate(category.id, { [input.id]: value })
+
+Props: { inputs: object, onUpdate: function }
+
+Constraints:
+- No form tags — use div + input[type=range]
+- Custom CSS for range thumb via index.css (already handles webkit/moz)
+- Style the track fill using inline background: linear-gradient()
+- Collapse toggle uses local useState only per card, not global state"
+
+WHY THIS WORKS:
+  → References existing data structures — no invented prop formats
+  → Specifies the exact CSS technique for the coloured slider track
+  → [CONSTRAINT] "no form tags" prevents submission event issues
+  → Scopes useState to "per card" — prevents wrong state architecture
+
+--------------------------------------------------------------------------------
+
+PROMPT 6 — AI insights hook
+─────────────────────────────────────────────────────────────────────────────
+Techniques: [ROLE] [CONTEXT] [FORMAT] [FALLBACK] [CONSTRAINT]
+
+"Build a React custom hook useAIInsights() that calls the Anthropic Claude API
+to generate personalised carbon footprint insights.
+
+The hook should:
+1. Accept (footprint, completedActions, profile) as parameters to fetchInsights()
+2. POST to https://api.anthropic.com/v1/messages with model claude-sonnet-4-6
+3. Use VITE_ANTHROPIC_API_KEY env var for auth header when present
+4. Prompt Claude to return ONLY valid JSON with keys:
+   - assessment: string (2 sentences)
+   - improvements: string[] (2 items, data-specific)
+   - tips: { action: string, impact: string }[] (3 items)
+   - motivation: string (1 sentence with a tree/equivalent comparison)
+5. Parse response, strip markdown fences if present, JSON.parse()
+6. On any error: call generateFallbackInsights(footprint, profile) instead
+
+generateFallbackInsights must be a pure function inside the same file that
+computes real values from the footprint data — no hardcoded strings.
+
+Return: { loading, insights, error, fetchInsights }"
+
+WHY THIS WORKS:
+  → [FALLBACK] is baked into the prompt — offline resilience by design
+  → Specifying JSON keys with types prevents vague responses
+  → "strip markdown fences" handles Claude's occasional code block wrapping
+  → "pure function... no hardcoded strings" prevents lazy fallback output
+
+================================================================================
+SECTION 3 — AI SYSTEM PROMPTS (RUNTIME)
+================================================================================
+
+PROMPT 7 — EcoAdvisor insights system prompt
+─────────────────────────────────────────────────────────────────────────────
+Techniques: [ROLE] [CONTEXT] [FORMAT] [CONSTRAINT]
+
+This prompt runs at runtime inside the app to generate personalised insights:
+
+SYSTEM:
+"You are EcoAdvisor. Always respond with valid JSON only.
+No markdown, no preamble, just the JSON object."
+
+USER:
+"You are EcoAdvisor, a friendly and knowledgeable carbon footprint expert.
+
+A user named '{name}' has the following annual carbon footprint:
+- Total: {total} kg CO2e/year
+- Transport: {transport} kg/year
+- Food: {food} kg/year
+- Home Energy: {energy} kg/year
+- Shopping: {shopping} kg/year
+
+Their goal is to reduce to {goal} kg/year (Paris Agreement aligned).
+They have completed {actionsCount} eco-actions so far.
+
+Reference points: global average 4,800 kg/year, Indian average 1,900 kg/year.
+
+Provide:
+1. A brief, encouraging 2-sentence assessment (reference their actual numbers)
+2. Top 2 improvement areas (name the category and kg amount)
+3. Three actionable tips specific to their biggest emission sources
+   (each with a concrete kg saving, not vague advice)
+4. One motivating comparison (trees planted / cars off road / flights avoided)
+
+Return JSON: { assessment, improvements: string[2], tips: {action,impact}[3],
+motivation }"
+
+WHY THIS WORKS:
+  → System prompt enforces JSON-only — eliminates parsing failures
+  → User prompt injects real user data — response is genuinely personalised
+  → "reference their actual numbers" prevents generic advice
+  → "not vague advice" in constraint steers away from "eat less meat" platitudes
+  → Concrete format spec prevents mismatched keys in the response
+
+--------------------------------------------------------------------------------
+
+PROMPT 8 — EcoAdvisor chat system prompt
+─────────────────────────────────────────────────────────────────────────────
+Techniques: [ROLE] [CONTEXT] [CONSTRAINT]
+
+This system prompt runs for every chat message:
+
+"You are EcoAdvisor, a knowledgeable, friendly assistant helping users reduce
+their carbon footprint.
+
+The user's current footprint context:
+- Annual total: {total} kg CO2e
+- Breakdown: Transport {transport}kg, Food {food}kg, Energy {energy}kg,
+  Shopping {shopping}kg
+
+Rules:
+- Always give specific, data-backed advice
+- Be concise (2–4 sentences maximum)
+- When relevant, reference the user's actual numbers from context above
+- Never give advice that contradicts their data (e.g. don't say 'cut flights'
+  if their flight emissions are 0)
+- If asked something outside sustainability, politely redirect"
+
+WHY THIS WORKS:
+  → Footprint context injected per message — Claude always knows the user's data
+  → "Never give advice that contradicts their data" prevents embarrassing errors
+  → 2–4 sentence limit prevents essay responses in a chat UI
+  → Redirect rule keeps the assistant on-topic without being rude
+
+================================================================================
+SECTION 4 — TESTING & QUALITY PROMPTS
+================================================================================
+
+PROMPT 9 — Unit test generation
+─────────────────────────────────────────────────────────────────────────────
+Techniques: [CONTEXT] [FORMAT] [CONSTRAINT] [EXAMPLE]
+
+"Write Vitest unit tests for src/utils/calculations.js.
+
+Functions to test:
+- calculateTransportEmissions(inputs) → kg CO2e/year
+- calculateFoodEmissions(inputs) → kg CO2e/year
+- calculateEnergyEmissions(inputs) → kg CO2e/year
+- calculateShoppingEmissions(inputs) → kg CO2e/year
+- calculateTotalFootprint(allInputs) → { total, breakdown, perDay, perMonth }
+- getCarbonRating(kgPerYear) → { label, color, grade }
+- percentChange(before, after) → number
+- formatEmissions(kg) → string
+
+For each function write:
+1. Happy path (typical real-world values)
+2. Zero/empty input edge case
+3. At least one domain-specific assertion (e.g. veg < beef for food)
+
+Use describe/it blocks, import from vitest. Mock localStorage in setup.js.
+Do NOT test implementation details — test observable outputs only.
+Total: aim for 30+ assertions."
+
+WHY THIS WORKS:
+  → Lists every function explicitly — no tests get skipped
+  → "domain-specific assertion" forces meaningful tests, not just type checks
+  → "observable outputs only" prevents brittle implementation-coupled tests
+  → Target count (30+) prevents superficial coverage
+
+--------------------------------------------------------------------------------
+
+PROMPT 10 — README generation
+─────────────────────────────────────────────────────────────────────────────
+Techniques: [ROLE] [CONTEXT] [FORMAT] [CONSTRAINT]
+
+"Write a professional README.md for EcoTrace, a carbon footprint tracker
+submitted to Google PromptWars 2026.
+
+Audience: technical judges evaluating on Code Quality, Security, Efficiency,
+Testing, and Accessibility.
+
+Include sections:
+1. Project name + one-line description + badges (React, Vite, Claude AI)
+2. Chosen vertical and why (2–3 sentences)
+3. Feature table (icon | feature | description)
+4. Architecture section: tech stack, folder structure tree, logic explanation
+5. Getting started (install, dev, build, test commands)
+6. AI configuration (env var setup for standalone deployment)
+7. Emission factor sources table
+8. Testing section (what's covered, how to run)
+9. Design decisions (5 bullet points, each with a concrete rationale)
+10. Assumptions made (numbered list, specific and honest)
+
+Constraints:
+- No marketing fluff — judges are technical
+- Every design decision must have a 'why', not just a 'what'
+- Assumptions must be specific (e.g. 'beef meal = 150g serving') not vague"
+
+WHY THIS WORKS:
+  → Audience-awareness prompt — output is calibrated for judge evaluation criteria
+  → Section list matches the judging rubric areas
+  → "No marketing fluff" and "every decision needs a why" raise signal quality
+  → Specific assumption format prevents hedged, useless bullets
+
+================================================================================
+SECTION 5 — LINKEDIN & PRESENTATION PROMPTS
+================================================================================
+
+PROMPT 11 — LinkedIn post
+─────────────────────────────────────────────────────────────────────────────
+Techniques: [ROLE] [CONTEXT] [FORMAT] [CONSTRAINT]
+
+"Write a LinkedIn post announcing EcoTrace, submitted for Google PromptWars 2026.
+
+About me: B.E. CSE (AI & ML) student at JSSATEB Bengaluru, independent
+full-stack and AI consultant, active in the Bengaluru developer community.
+
+The post should:
+- Open with the project name and competition context (hook in line 1)
+- Explain the problem it solves in one sentence (not 'I built X because Y')
+- List 5 features with emojis (keep to one line each)
+- Mention the tech stack naturally (not as a bullet list)
+- Share one genuine insight from building it (not generic)
+- End with a call to action asking readers their carbon grade
+- Include 10 relevant hashtags including #PromptWars #GooglePromptWars
+
+Tone: confident but not boastful, technical but human, like a builder
+sharing work — not a press release.
+Length: under 300 words.
+No em-dashes. No corporate buzzwords like 'leverage' or 'synergy'."
+
+WHY THIS WORKS:
+  → Personal context makes the post authentic, not generic
+  → "not 'I built X because Y'" breaks a common LinkedIn cliché pattern
+  → "genuine insight from building it" creates the most shareable moment
+  → Explicit tone constraints produce builder voice, not PR voice
+  → Negative constraints (no em-dashes, no buzzwords) are as important as positive
+
+================================================================================
+PROMPT ENGINEERING PRINCIPLES — SUMMARY
+================================================================================
+
+  1. ROLE BEFORE TASK
+     Assign expertise first. "You are a climate scientist" before asking for
+     emission factors produces more accurate, source-aware output than asking
+     cold.
+
+  2. CONTEXT IS LOAD-BEARING
+     Injecting actual data (prop shapes, existing function names, file paths)
+     prevents hallucinated interfaces. The model works with what you give it.
+
+  3. FORMAT SPECS REMOVE AMBIGUITY
+     "Return JSON with keys: assessment, improvements, tips, motivation" is
+     infinitely better than "return structured data". Exact keys = exact output.
+
+  4. NEGATIVE CONSTRAINTS MATTER AS MUCH AS POSITIVE
+     "No form tags", "no hardcoded strings", "no marketing fluff" are as
+     important as telling the model what TO do. They cut the most common
+     failure modes.
+
+  5. CHAIN COMPLEX TASKS
+     Architecture → components → tests → docs. Each prompt builds on the
+     verified output of the last. Never ask for everything at once.
+
+  6. BAKE IN FALLBACKS
+     The best AI-powered apps don't break when the API is down. Prompting
+     for a graceful fallback at design time is better than debugging at demo
+     time.
+
+  7. CALIBRATE FOR YOUR AUDIENCE
+     README for technical judges. LinkedIn for builders. Chat responses for
+     general users. The same information, shaped differently per prompt.
+
+================================================================================
+  EcoTrace | Google PromptWars 2026
+  github.com/advaith0717/ecotrace-carbon-tracker
+================================================================================
