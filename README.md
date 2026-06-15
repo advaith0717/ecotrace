@@ -187,4 +187,3 @@ Pull requests welcome! Please open an issue first to discuss significant changes
 
 ---
 
-*Built with 💚 for a sustainable future*
